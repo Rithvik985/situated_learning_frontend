@@ -1,5 +1,9 @@
+import axios from "axios";
+
 // api.js
 const BASE_URL = "http://localhost:8090";
+const FEEDBACK_API = "http://localhost:8091"; 
+
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
@@ -61,4 +65,17 @@ export const api = {
   
   // DB status
   dbStatus: () => apiCall('/db_status'),
+
+    submitFeedback: async (payload) => {
+    const res = await axios.post(`${FEEDBACK_API}/feedback`, payload);
+    return res.data;
+  },
+  getFeedback: async (type) => {
+    const res = await axios.get(`${FEEDBACK_API}/feedback`, {
+      params: type ? { feedback_type: type } : {}
+    });
+    return res.data;
+  }
 };
+
+
