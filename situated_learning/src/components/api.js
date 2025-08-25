@@ -2,7 +2,7 @@ import axios from "axios";
 
 // api.js
 const BASE_URL = "http://localhost:8090";
-const FEEDBACK_API = "http://localhost:8091"; 
+const FEEDBACK_API = "http://localhost:8001"; 
 
 
 // Helper function for API calls
@@ -66,7 +66,7 @@ export const api = {
   // DB status
   dbStatus: () => apiCall('/db_status'),
 
-    submitFeedback: async (payload) => {
+  submitFeedback: async (payload) => {
     const res = await axios.post(`${FEEDBACK_API}/feedback`, payload);
     return res.data;
   },
