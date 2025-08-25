@@ -11,6 +11,7 @@ body {
   min-height: 100vh;
   color: #1a202c;
   line-height: 1.6;
+  justify-content: center;
 }
 
 .app {
@@ -22,6 +23,7 @@ body {
   min-height: 100vh;
   padding: 2rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
 }
 
 .dashboard-content {
@@ -113,6 +115,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   margin-bottom: 3rem;
+  
 }
 
 .dashboard-card {
@@ -334,6 +337,7 @@ body {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
+  width: 100vw;
 }
 
 .page-content {
@@ -350,6 +354,7 @@ body {
   font-weight: 700;
   color: white;
   margin-top: 1rem;
+  align-content: center;
 }
 
 .back-button {
@@ -623,6 +628,7 @@ body {
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   font-size: 0.875rem;
+  color:black;
   background: white;
   transition: all 0.3s ease;
 }
@@ -1061,4 +1067,41 @@ textarea:focus-visible {
 .assignment-details,
 .result-display {
   color: #000;
+}
+
+/* Progress bar container */
+.progress-bar {
+  width: 100%;
+  background-color: #e8e8e8;
+  border-radius: 6px;
+  height: 20px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+/* Filled part */
+.progress-fill {
+  height: 100%;
+  background-color: #4caf50; /* green */
+  text-align: center;
+  line-height: 20px;
+  color: white;
+  font-size: 12px;
+  transition: width 0.4s ease;
+}
+
+.rubric-viewer {
+  margin-top: 10px;
+}
+
+.rubric-category {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin: 8px 0;
+  padding: 4px;
+}
+
+.category-header {
+  font-size: 16px;
+  font-weight: 500;
 }
