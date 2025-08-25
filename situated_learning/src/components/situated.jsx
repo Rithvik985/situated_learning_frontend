@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, FileText, Upload, CheckCircle, User, BookOpen, Settings, Search, Edit3, Save, X, Eye, Download, Send } from 'lucide-react';
 import { api } from './api'; // Import the API service
 import "../styles/situated.css";
+import { Star} from "lucide-react";
 
 const SituatedLearningApp = () => {
   const [currentScreen, setCurrentScreen] = useState('dashboard');
@@ -26,6 +27,8 @@ const SituatedLearningApp = () => {
   // CreateAssignment specific states
   const [courseOptions, setCourseOptions] = useState([]);
 
+    const [rating, setRating] = useState(0);
+  const [suggestion, setSuggestion] = useState("");
   const [assignmentData, setAssignmentData] = useState({
     courseName: "",
     courseCode: "",
@@ -42,6 +45,162 @@ const SituatedLearningApp = () => {
       window.scrollTo(0, scrollY);
     });
   }, []);
+
+function ProgressBar({ percentage }) {
+  return (
+    <div className="progress-bar">
+      <div
+        className="progress-fill"
+        style={{ width: `${percentage}%` }}
+      >
+        {percentage}%
+      </div>
+    </div>
+  );
+}
+
+const FeedbackForm = ({ feedbackType, content, onClose }) => {
+
+
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      alert("Please select a rating before submitting.");
+      return;
+    }
+
+    await api.submitFeedback({
+      feedback_type: feedbackType,
+      content: content,
+      rating: rating,
+      suggestion: suggestion || null, // match backend schema
+    });
+
+    onClose?.(); // call close if passed
+  };
+console.log("logggg",rating)
+  return (
+    <div className="p-4 border rounded-2xl shadow bg-white max-w-md">
+      <h3 className="text-lg font-semibold mb-2">
+        Give Feedback on {feedbackType}
+      </h3>
+
+      {/* ⭐ Stars */}
+      <div className="flex gap-1 mb-2">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={28}
+            className={`cursor-pointer transition-colors ${
+              star <= rating
+                ? "text-yellow-500 fill-yellow-500"
+                : "text-gray-400"
+            }`}
+            onClick={() => setRating(star)}
+            onMouseEnter={() => setHover(star)}
+            onMouseLeave={() => setHover(0)}
+
+          />
+        ))}
+      </div>
+
+      {/* 💬 Suggestion box */}
+      <textarea
+        className="w-full p-2 border rounded-md mb-2 focus:outline-none focus:ring focus:border-blue-400"
+        placeholder="Suggestions (optional)"
+        value={suggestion}
+        onChange={(e) => setSuggestion(e.target.value)}
+      />
+
+      {/* ✅ Submit button */}
+      <button
+        onClick={handleSubmit}
+        className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl shadow hover:bg-blue-600"
+      >
+        <Send size={16} /> Submit
+      </button>
+    </div>
+  );
+};
+
+
+function EvaluationReport({ evaluation }) {
+  if (!evaluation) return null;
+
+  const data = typeof evaluation === "string" ? JSON.parse(evaluation) : evaluation;
+
+  return (
+    <div>
+      <h2>{data.rubric_name}</h2>
+      <p>
+        <strong>Overall:</strong> {data.evaluation_summary.total_score}/
+        {data.evaluation_summary.total_questions} (
+        {data.evaluation_summary.percentage}%)
+      </p>
+      <ProgressBar percentage={data.evaluation_summary.percentage} />
+
+      {Object.entries(data.category_breakdown).map(([cat, val]) => {
+        const pct = (val.score / val.total) * 100;
+        return (
+          <div key={cat} style={{ marginTop: "12px" }}>
+            <p>
+              <strong>{cat}:</strong> {val.score}/{val.total} ({pct.toFixed(0)}%)
+            </p>
+            <ProgressBar percentage={pct.toFixed(0)} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RubricViewer({ rubricData }) {
+  if (!rubricData) return <p>No rubric available.</p>;
+
+  const { rubric_name, doc_type, rubrics } = rubricData;
+
+  return (
+    <div className="rubric-viewer">
+      <h2>{rubric_name}</h2>
+      <h4 style={{ color: "#666" }}>{doc_type}</h4>
+
+      {rubrics.map((section, idx) => (
+        <Category key={idx} section={section} />
+      ))}
+    </div>
+  );
+}
+
+function Category({ section }) {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <div className="rubric-category">
+      <div
+        className="category-header"
+        onClick={() => setOpen(!open)}
+        style={{
+          cursor: "pointer",
+          background: "#f5f5f5",
+          padding: "8px",
+          borderRadius: "6px",
+          marginBottom: "4px"
+        }}
+      >
+        <strong>{section.category}</strong> {open ? "▲" : "▼"}
+      </div>
+      {open && (
+        <ul style={{ marginLeft: "16px" }}>
+          {section.questions.map((q, i) => (
+            <li key={i} style={{ marginBottom: "6px" }}>
+              {q}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 
   // Memoized handlers to prevent unnecessary re-renders
   const handleInputChange = useCallback((field, value) => {
@@ -242,8 +401,15 @@ const SituatedLearningApp = () => {
     console.log('Evaluation saved:', evaluation);
   };
 
+  
   // Render functions for different screens
   const renderDashboard = () => (
+
+
+    <div className="main-content">
+  <div className="dashboard">
+        <div className="page-container">
+  <div className="max-w-6xl w-full">
     <div className="dashboard-container">
       <div className="dashboard-content">
         <div className="dashboard-header">
@@ -326,6 +492,10 @@ const SituatedLearningApp = () => {
         </div>
       </div>
     </div>
+    </div>
+    </div>
+    </div>
+    </div>
   );
 
   const renderCreateAssignment = () => (
@@ -345,6 +515,7 @@ const SituatedLearningApp = () => {
           <div className="form-section">
             <h3>Course Information</h3>
             <div className="form-grid">
+              <div className="flex">
               <div className="form-group">
                 <label>Course Name</label>
                 <select 
@@ -358,7 +529,6 @@ const SituatedLearningApp = () => {
                     </option>
                   ))}
                 </select>
-                {isLoading && <div className="loading-text">Loading assignments...</div>}
               </div>
               
               <div className="form-group">
@@ -370,7 +540,9 @@ const SituatedLearningApp = () => {
                   placeholder="e.g., CS F415"
                 />
               </div>
+              </div>
               
+              <div className="flex">
               <div className="form-group">
                 <label>Instructor Name</label>
                 <input 
@@ -396,6 +568,7 @@ const SituatedLearningApp = () => {
                 </select>
               </div>
             </div>
+          </div>
           </div>
           
           <div className="form-section">
@@ -487,6 +660,11 @@ const SituatedLearningApp = () => {
                   Approve & Save
                 </button>
               </div>
+   <FeedbackForm
+  feedbackType="assignment"
+  content={generatedAssignment}
+  onClose={() => {}}
+/>           
             </div>
           )}
           
@@ -511,18 +689,20 @@ const SituatedLearningApp = () => {
                 </div>
               </div>
               
-              <div className="result-content rubric">
-                {editingRubric ? (
-                  <textarea
-                    value={generatedRubric}
-                    onChange={(e) => setGeneratedRubric(e.target.value)}
-                    className="edit-textarea"
-                    rows={15}
-                  />
-                ) : (
-                  <pre className="result-display">{generatedRubric}</pre>
-                )}
-              </div>
+<div className="result-content rubric">
+  {editingRubric ? (
+    <textarea
+      value={generatedRubric}
+      onChange={(e) => setGeneratedRubric(e.target.value)}
+      className="edit-textarea"
+      rows={15}
+    />
+  ) : (
+    <RubricViewer rubricData={rubricData} />
+  )}
+</div>
+
+
               
               <div className="result-footer">
                 <button className="btn-success">
@@ -678,7 +858,44 @@ const SituatedLearningApp = () => {
                     rows={20}
                   />
                 ) : (
-                  <pre className="result-display">{evaluation}</pre>
+                  <pre className="result-display">{(() => {
+  let evalData;
+  try {
+    evalData = JSON.parse(evaluation);
+  } catch {
+    return <pre className="result-display">{evaluation}</pre>;
+  }
+
+  return (
+    <div className="evaluation-report">
+      <h4>{evalData.rubric_name}</h4>
+
+      {/* Overall Score */}
+      <div className="evaluation-overall">
+        <p>
+          Overall: {evalData.evaluation_summary.total_score}/
+          {evalData.evaluation_summary.total_questions} (
+          {evalData.evaluation_summary.percentage}%)
+        </p>
+        <ProgressBar percentage={evalData.evaluation_summary.percentage} />
+      </div>
+
+      {/* Category breakdown */}
+      <div className="evaluation-categories">
+        {Object.entries(evalData.category_breakdown).map(([cat, data]) => (
+          <div key={cat} className="category-block">
+            <p>
+              <strong>{cat}</strong>: {data.score}/{data.total} (
+              {data.percentage}%)
+            </p>
+            <ProgressBar percentage={data.percentage} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+})()}
+</pre>
                 )}
               </div>
               
