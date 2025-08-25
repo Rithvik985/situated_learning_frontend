@@ -27,7 +27,8 @@ const SituatedLearningApp = () => {
   // CreateAssignment specific states
   const [courseOptions, setCourseOptions] = useState([]);
 
-    const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(0);
+  
   const [suggestion, setSuggestion] = useState("");
   const [assignmentData, setAssignmentData] = useState({
     courseName: "",
@@ -37,6 +38,18 @@ const SituatedLearningApp = () => {
     topic: "",
     customInstructions: ""
   });
+
+  // inside SituatedLearningApp component
+const [showFeedback, setShowFeedback] = useState(false);
+const [feedbackType, setFeedbackType] = useState("");
+const [feedbackContent, setFeedbackContent] = useState("");
+
+// 🔹 helper to open feedback
+const openFeedback = (type, content) => {
+  setFeedbackType(type);
+  setFeedbackContent(content);
+  setShowFeedback(true);
+};
 
   // Add scroll position preservation
   const preserveScrollPosition = useCallback(() => {
@@ -60,7 +73,11 @@ function ProgressBar({ percentage }) {
 }
 
 const FeedbackForm = ({ feedbackType, content, onClose }) => {
-
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [suggestion, setSuggestion] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -68,56 +85,124 @@ const FeedbackForm = ({ feedbackType, content, onClose }) => {
       return;
     }
 
-    await api.submitFeedback({
-      feedback_type: feedbackType,
-      content: content,
-      rating: rating,
-      suggestion: suggestion || null, // match backend schema
-    });
-
-    onClose?.(); // call close if passed
+    setIsSubmitting(true);
+    
+    try {
+      await api.submitFeedback({
+        feedback_type: feedbackType,
+      generated_content: JSON.stringify(content),
+        rating:rating,
+        suggestion: suggestion || null,
+      });
+      
+      setSubmitSuccess(true);
+      
+      // Auto-close after showing success
+      setTimeout(() => {
+        onClose?.();
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      alert('Failed to submit feedback. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-console.log("logggg",rating)
+
+  if (submitSuccess) {
+    return (
+      <div className="p-6 border rounded-2xl shadow-lg bg-white max-w-md">
+        <div className="text-center">
+          <CheckCircle className="mx-auto mb-3 text-green-500" size={48} />
+          <h3 className="text-lg font-semibold text-green-700 mb-2">
+            Feedback Submitted!
+          </h3>
+          <p className="text-gray-600">Thank you for your feedback.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 border rounded-2xl shadow bg-white max-w-md">
-      <h3 className="text-lg font-semibold mb-2">
-        Give Feedback on {feedbackType}
-      </h3>
-
-      {/* ⭐ Stars */}
-      <div className="flex gap-1 mb-2">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={28}
-            className={`cursor-pointer transition-colors ${
-              star <= rating
-                ? "text-yellow-500 fill-yellow-500"
-                : "text-gray-400"
-            }`}
-            onClick={() => setRating(star)}
-            onMouseEnter={() => setHover(star)}
-            onMouseLeave={() => setHover(0)}
-
-          />
-        ))}
+    <div className="p-6 border rounded-2xl shadow-lg bg-white max-w-md">
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-semibold">
+          Give Feedback on {feedbackType}
+        </h3>
+        <button 
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+        >
+          ×
+        </button>
       </div>
 
-      {/* 💬 Suggestion box */}
-      <textarea
-        className="w-full p-2 border rounded-md mb-2 focus:outline-none focus:ring focus:border-blue-400"
-        placeholder="Suggestions (optional)"
-        value={suggestion}
-        onChange={(e) => setSuggestion(e.target.value)}
-      />
+      {/* Star Rating */}
+      <div className="mb-4">
+        <p className="text-sm font-medium text-gray-700 mb-2">
+          Rate this {feedbackType}:
+        </p>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              size={32}
+              className={`cursor-pointer transition-all duration-200 ${
+                star <= (hover || rating)
+                  ? "text-yellow-500 fill-yellow-500 scale-110"
+                  : "text-gray-300 hover:text-yellow-400"
+              }`}
+              fill={hover||rating?"Yellow":"none"}
+              onClick={() => setRating(star)}
+              onMouseEnter={() => setHover(star)}
+              onMouseLeave={() => setHover(0)}
+            />
+          ))}
+        </div>
+        {(rating > 0 || hover > 0) && (
+          <p className="text-sm text-gray-600 mt-1">
+            {hover > 0 ? hover : rating} out of 5 stars
+          </p>
+        )}
+      </div>
 
-      {/* ✅ Submit button */}
-      <button
-        onClick={handleSubmit}
-        className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl shadow hover:bg-blue-600"
-      >
-        <Send size={16} /> Submit
-      </button>
+      {/* Suggestion textarea */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Suggestions (optional)
+        </label>
+        <textarea
+          className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Share your thoughts or suggestions for improvement..."
+          value={suggestion}
+          onChange={(e) => setSuggestion(e.target.value)}
+          rows={4}
+        />
+      </div>
+
+      {/* Submit button */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting || rating === 0}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+            isSubmitting || rating === 0
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-500 hover:bg-blue-600 text-white shadow hover:shadow-md'
+          }`}
+        >
+          <Send size={16} />
+          {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+        </button>
+        
+        <button
+          onClick={onClose}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 };
@@ -270,6 +355,8 @@ function Category({ section }) {
       setGeneratedAssignment(data.generated_assignment || '');
       setAssignmentId(data.assignment_id || null);
       
+      openFeedback("assignment", data.generated_assignment || '');
+
     } catch (err) {
       setError(`Failed to generate assignment: ${err.message}`);
       console.error(err);
@@ -292,6 +379,8 @@ function Category({ section }) {
       setGeneratedRubric(data.rubric || '');
       setRubricData(data.rubric ? JSON.parse(data.rubric) : null);
       
+        openFeedback("rubric", data.rubric || '');
+
     } catch (err) {
       setError(`Failed to generate rubric: ${err.message}`);
       console.error(err);
@@ -382,6 +471,8 @@ function Category({ section }) {
         console.log("Setting parent evaluation state...");
         setEvaluation(evaluationText); // This now sets the parent state
         console.log("Evaluation set successfully!");
+    openFeedback("evaluation", evaluationText || '');
+
 
       } else {
         setError('No evaluation data received from server');
@@ -659,12 +750,7 @@ function Category({ section }) {
                   <Save />
                   Approve & Save
                 </button>
-              </div>
-   <FeedbackForm
-  feedbackType="assignment"
-  content={generatedAssignment}
-  onClose={() => {}}
-/>           
+              </div>          
             </div>
           )}
           
@@ -946,6 +1032,18 @@ function Category({ section }) {
       {currentScreen === 'dashboard' && renderDashboard()}
       {currentScreen === 'create' && renderCreateAssignment()}
       {currentScreen === 'evaluate' && renderEvaluateSubmissions()}
+    
+       {/* 🔽 Feedback modal goes here */}
+    {showFeedback && (
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <FeedbackForm
+          feedbackType={feedbackType}
+          content={feedbackContent}
+          onClose={() => setShowFeedback(false)}
+        />
+      </div>
+    )}
+    
     </div>
   );
 };
